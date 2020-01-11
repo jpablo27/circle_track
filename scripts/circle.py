@@ -9,7 +9,8 @@ import numpy as np
 import argparse
 import imutils
 import cv2
-from geometry_msgs.msg import TwistStamped
+from geometry_msgs.msg import TwistStamped, PoseStamped
+
 
 
 orientation = 0.0
@@ -50,8 +51,10 @@ def tracker():
     x_1 = 0
     y_1 = 0
 
+    cmd = TwistStamped()
+
     if not args.get("video", False):
-        camera = cv2.VideoCapture(2)
+        camera = cv2.VideoCapture(0)
     else:
         camera = cv2.VideoCapture(args["video"])
 
@@ -68,7 +71,7 @@ def tracker():
 
 
         mask = cv2.inRange(hsv, lower_hsv, upper_hsv)
-        #cv2.imshow("Mask", mask)
+        cv2.imshow("Mask", mask)
         mask = cv2.erode(mask, None, iterations=1)
         mask = cv2.dilate(mask, None, iterations=3)
 
@@ -81,11 +84,16 @@ def tracker():
 
             if radius > 5:
                 cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
+
         ex = x - xo
         ey = y - yo
 
-        ux = kp*ex + kd*(ex-x_1)
-        uy = kp*ey + kd*(ey-y_1)
+        if len(cnts) > 0:
+            ux = kp*ex + kd*(ex-x_1)
+            uy = kp*ey + kd*(ey-y_1)
+        else:
+            ux=0
+            uy=0
 
         x_1 = ex;
         y_1 = ey;
@@ -93,10 +101,10 @@ def tracker():
         cmd.twist.linear.x= uy*math.cos(orientation)+ux*math.sin(orientation)
         cmd.twist.linear.y= uy*math.sin(orientation)-ux*math.cos(orientation)
 
-        #cv2.imshow("Frame", frame)
+        cv2.imshow("Frame", frame)
         
 
-        #key = cv2.waitKey(1) & 0xFF
+        key = cv2.waitKey(1) & 0xFF
 
         if key == ord("q"):
             break
